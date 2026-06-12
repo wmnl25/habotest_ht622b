@@ -1,0 +1,21 @@
+Target dB,Full 23-Byte Raw Frame,Byte 7 (Tens),Byte 8 (Units),Byte 9 (Tenths),Key Context / State Flags,Notes / Insights Discovered
+48.0,06 2A 11 01 05 0E C0 E6 BF 3F 00 0F 00 00 00 08 00 00 00 02 0D 0A 00,0xE6,0xBF,0x3F,Mode = MIN,Confirmed 0xBF as 8 in MIN mode; 0x3F acts as .0.
+48.3,06 2A 11 01 05 0A C0 E6 5F 3F 00 0F 00 00 00 00 00 00 00 02 0D 0A 00,0xE6,0x5F,0x3F,Mode = NORMAL,Proved 0x3F can mean .3 when paired with a normal 0x5F.
+48.4,06 2A 11 01 05 0A C0 E6 DF 36 00 0F 00 00 00 00 00 00 00 02 0D 0A 00,0xE6,0xDF,0x36,Mode = NORMAL,Locked down 0x36 as a solid .4.
+48.7,06 2A 11 01 05 0A C0 E6 1F 3E 00 0F 00 00 00 00 00 00 00 02 0D 0A 00,0xE6,0x1F,0x3E,Mode = NORMAL,Mapped 0x1F to 8 and 0x3E to .7.
+48.8,06 2A 11 01 05 0A C0 E6 FF 0F 00 0F 00 00 00 00 00 00 00 02 0D 0A 00,0xE6,0xFF,0x0F,Range = 30-80,Captured mid-transition (Units briefly hit 0xFF / 9); 0x0F is .8.
+49.0,06 2A 11 01 05 0E C0 C6 BF 3F 00 0F 00 00 08 00 00 00 00 00 0D 0A 00,0xC6,0xBF,0x3F,Byte 14 = 0x08,"Symmetric Alignment: When Tens is 0xC6, 0xBF forces to 9 and 0x3F maps to .0."
+49.1,06 2A 11 01 05 0E C0 C6 1F 36 00 0F 00 00 08 00 00 00 00 00 0D 0A 00,0xC6,0x1F,0x36,Byte 14 = 0x08,Matrix Shift: 0x1F maps to 9 here; 0x36 cross-wires to mean .1.
+49.5,06 2A 11 01 05 0E C0 C6 DF 3B 00 0F 00 00 08 00 00 00 00 00 0D 0A 00,0xC6,0xDF,0x3B,Byte 14 = 0x08,Confirmed 0xC6 keeps Tens at 4; 0x3B maps to .5.
+49.8,06 2A 11 01 05 0E C0 C6 FF 3F 00 0F 00 00 08 00 00 00 00 00 0D 0A 00,0xC6,0xFF,0x3F,Byte 14 = 0x08,Matrix Shift: 0x3F acts as .8 when paired with 0xFF.
+49.9,06 2A 11 01 05 0E C0 C6 DF 3F 00 0F 00 00 08 00 00 00 00 00 0D 0A 00,0xC6,0xDF,0x3F,Byte 14 = 0x08,Matrix Shift: 0x3F acts as .9 when paired with 0xDF.
+50.0,06 2A 11 01 05 0E C0 AB BF 3F 00 0F 00 00 08 00 00 00 00 00 0D 0A 00,0xAB,0xBF,0x3F,Byte 14 = 0x08,Mapped 0xAB to 5; 0xBF shifts to 0; 0x3F acts as .0.
+50.1,06 2A 11 01 05 0E C0 AB 1F 36 00 0F 00 00 08 00 00 00 00 00 0D 0A 00,0xAB,0x1F,0x36,Byte 14 = 0x08,Matrix Shift: 0x1F shifts to 0; 0x36 cross-wires to mean .1.
+50.3,06 2A 11 01 05 0E C0 AB 5F 3F 00 0F 00 00 08 00 00 00 00 00 0D 0A 00,0xAB,0x5F,0x3F,Byte 14 = 0x08,Matrix Shift: 0x5F shifts to 0; 0x3F acts as .3.
+50.5,06 2A 11 01 05 0E C0 AB DF 3B 00 0F 00 00 08 00 00 00 00 00 0D 0A 00,0xAB,0xDF,0x3B,Byte 14 = 0x08,"Matrix Shift: Paired with 0xAB, 0xDF shifts to 0; 0x3B maps to .5."
+51.5,06 2A 11 01 05 0E C0 0B D6 3B 00 0F 00 00 08 00 00 00 00 00 0D 0A 00,0x0B,0xD6,0x3B,Byte 14 = 0x08,Confirmed 0x0B as 5 when Byte 14 == 0x08. 0xD6 is 1.
+53.4,06 2A 11 01 05 0E C0 4B DF 36 00 0F 00 00 08 00 00 00 00 00 0D 0A 00,0x4B,0xDF,0x36,Byte 14 = 0x08,Mapped 0x4B as 5; 0xDF shifts to a 3 in this layout combination.
+57.2,06 2A 11 01 05 0A C0 0B 7E 3D 00 0F 00 00 00 00 08 00 00 02 0D 0A 00,0x0B,0x7E,0x3D,Mode = MAX,"Locked down 0x7E as a clean, base version of 7; 0x3D is .2."
+57.7,06 2A 11 01 05 0E C0 0B 1E 3E 00 0F 00 00 00 00 00 00 00 02 0D 0A 00,0x0B,0x1E,0x3E,Mode = NORMAL,High-stability capture using HOLD=ON. Cleared up overlapping states.
+57.9,06 2A 11 01 05 0E C0 0B DE 3F 00 0F 00 00 08 00 00 00 00 00 0D 0A 00,0x0B,0xDE,0x3F,Byte 14 = 0x08,Mapped 0xDE as 7; 0x3F shifts to mean .9 in this layout context.
+61.0,06 2A 11 01 05 0A E0 0B B6 3F 00 0F 00 00 00 00 00 00 00 02 0D 0A 00,0x0B,0xB6,0x3F,Byte 14 = 0x00,Proved 0x0B switches to 6 when Byte 14 == 0x00. 0x3F is .0.
