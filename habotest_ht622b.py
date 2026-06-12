@@ -3,9 +3,8 @@
 HT622B Sound Level Meter - Real-Time Decoder
 =============================================
 Based on official protocol: HT622B上位机通讯协议-V0.0
-Uses HT1621 LCD driver RAM mapping (32x4 bits, packed as 16 bytes)
 
-Frame: 23 bytes, 9600 baud, 8N1
+Frame structure (23 bytes, 9600 baud, 8N1):
   Bytes 0-1:  Model1=0x06, Model2=0x2A (header)
   Byte 2:     SumBytes=0x11 (17 data bytes)
   Byte 3:     Type=0x01 (real-time)
@@ -40,6 +39,7 @@ SEGMENTS_TO_NUM = {
     (1, 1, 1, 1, 0, 1, 1): "9",
 }
 
+
 def decode_digit(pin_left, pin_right):
     """
     Decode a standard LCD digit split across two HT1621 PIN addresses.
@@ -59,18 +59,6 @@ def decode_digit(pin_left, pin_right):
     char = SEGMENTS_TO_NUM.get((a, b, c, d, e, f, g), "?")
     return char, p
 
-def get_range_setting(byte4, byte9):
-    base_byte4 = byte4 & 0xFE
-    range_id = (base_byte4, byte9 & 0xF0)
-    ranges = {
-        (0x04, 0x30): "30-130",
-        (0x04, 0x00): "30-80",
-        (0x0C, 0x00): "40-90",
-        (0x0C, 0x30): "50-100",
-        (0x00, 0x30): "70-120",
-        (0x0E, 0x30): "60-110 / 80-130",
-    }
-    return ranges.get(range_id, f"UNKNOWN {range_id}")
 
 def print_frame_and_decode(frame):
     # Extract 32 PINs from 16 bytes (D15-D0)
@@ -82,28 +70,29 @@ def print_frame_and_decode(frame):
         pins[6 + (i * 2)] = (byte_val >> 4) & 0x0F   # Even PIN
 
     # Decode digits using cross-byte HT1621 RAM mapping
-    tens, _   = decode_digit(pins[10], pins[11])  # Digit 3 (P3, leftmost)
-    units, p2 = decode_digit(pins[12], pins[13])  # Digit 2 (P2, middle)
-    tenths, _ = decode_digit(pins[14], pins[15])  # Digit 1 (P1, rightmost)
+    tens, p3   = decode_digit(pins[10], pins[11])  # Digit 3 (P3, leftmost)
+    units, p2  = decode_digit(pins[12], pins[13])  # Digit 2 (P2, middle)
+    tenths, p1 = decode_digit(pins[14], pins[15])  # Digit 1 (P1, rightmost)
 
-    # Decimal point after units digit (P2 decimal point)
-    decimal_char = "." if p2 else ""
-    measured_value = f"{tens}{units}{decimal_char}{tenths}"
+    # Format decimal dynamically based on active hardware flags
+    # P2 decimal sits between tens and units. P1 decimal sits between units and tenths.
+    measured_value = f"{tens}{'.' if p2 else ''}{units}{'.' if p1 else ''}{tenths}"
 
-    # Status flags from PIN/COM intersections
-    is_hold    = bool(pins[7] & 0x04)   # PIN 7, COM2
-    weight_dba = bool(pins[5] & 0x01)   # PIN 5, COM0
-    weight_dbc = bool(pins[7] & 0x01)   # PIN 7, COM0
+    # Extract UI Flags by masking specific PIN/COM intersections
+    is_hold    = bool(pins[7] & 0x04)   # PIN 7, COM2 (H icon)
+    weight_dba = bool(pins[5] & 0x01)   # PIN 5, COM0 (A icon)
+    weight_dbc = bool(pins[7] & 0x01)   # PIN 7, COM0 (C icon)
 
-    speed_fast = bool(pins[35] & 0x02) # PIN 35, COM1
-    speed_slow = bool(pins[25] & 0x08) # PIN 25, COM3
+    speed_fast = bool(pins[35] & 0x02)  # PIN 35, COM1 (FAST text)
+    speed_slow = bool(pins[25] & 0x08)  # PIN 25, COM3 (SLOW text)
 
-    is_max     = bool(pins[29] & 0x08) # PIN 29, COM3
-    is_min     = bool(pins[27] & 0x08) # PIN 27, COM3
+    is_max     = bool(pins[29] & 0x08)  # PIN 29, COM3 (MAX text)
+    is_min     = bool(pins[27] & 0x08)  # PIN 27, COM3 (MIN text)
 
-    is_under   = bool(pins[9] & 0x04)  # PIN 9, COM2
-    is_over    = bool(pins[16] & 0x08) # PIN 16, COM3
+    is_under   = bool(pins[9] & 0x04)   # PIN 9, COM2 (UNDER text)
+    is_over    = bool(pins[16] & 0x08)  # PIN 16, COM3 (OVER text)
 
+    # Determine active states
     weight_text = "dBA" if weight_dba else ("dBC" if weight_dbc else "UNKNOWN")
     speed_text  = "FAST" if speed_fast else ("SLOW" if speed_slow else "UNKNOWN")
 
@@ -115,19 +104,18 @@ def print_frame_and_decode(frame):
     if is_under: limit_text = "UNDER"
     if is_over: limit_text = "OVER"
 
-    range_text = get_range_setting(frame[4], frame[9])
-
-    print("\n" + "=" * 50)
+    print("\n" + "=" * 40)
     print(f"Raw: {' '.join(f'{b:02X}' for b in frame)}")
     print(f"Modes: HOLD={'ON' if is_hold else 'OFF'} | SPEED={speed_text} | WEIGHT={weight_text} | MODE={mode_text} | LIMIT={limit_text}")
-    print(f"Range: {range_text}")
     print(f"Value: {measured_value} {weight_text}")
-    print("=" * 50)
+    print("=" * 40)
+
 
 def main():
     try:
         with serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1) as ser:
-            print(f"HT622B Decoder running on {SERIAL_PORT} at {BAUD_RATE} baud...\n")
+            print(f"HT622B Decoder running on {SERIAL_PORT} at {BAUD_RATE} baud...")
+            print("Press Ctrl+C to stop.\n")
             while True:
                 frame = ser.read(FRAME_LEN)
                 if len(frame) == FRAME_LEN and frame[0:2] == b'\x06\x2A' and frame[3] == 0x01:
@@ -136,6 +124,7 @@ def main():
         print(f"Serial error: {e}")
     except KeyboardInterrupt:
         print("\nStopped by user.")
+
 
 if __name__ == "__main__":
     main()
