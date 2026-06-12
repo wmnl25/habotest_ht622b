@@ -19,9 +19,44 @@ mqtt:
         model: "HT622B"
         manufacturer: "Habotest"
 
+    - name: "HT622B Mode"
+      state_topic: "homeassistant/sensor/ht622b/state"
+      value_template: "{{ value_json.mode }}"
+      unique_id: "ht622b_mode"
+      device:
+        identifiers: ["ht622b"]
+
+    - name: "HT622B Speed"
+      state_topic: "homeassistant/sensor/ht622b/state"
+      value_template: "{{ value_json.speed }}"
+      unique_id: "ht622b_speed"
+      device:
+        identifiers: ["ht622b"]
+
+    - name: "HT622B Limit"
+      state_topic: "homeassistant/sensor/ht622b/state"
+      value_template: "{{ value_json.limit }}"
+      unique_id: "ht622b_limit"
+      device:
+        identifiers: ["ht622b"]
+
+    - name: "HT622B Range"
+      state_topic: "homeassistant/sensor/ht622b/state"
+      value_template: "{{ value_json.range }}"
+      unique_id: "ht622b_range"
+      device:
+        identifiers: ["ht622b"]
+
+    - name: "HT622B Hold"
+      state_topic: "homeassistant/sensor/ht622b/state"
+      value_template: "{{ value_json.hold }}"
+      unique_id: "ht622b_hold"
+      device:
+        identifiers: ["ht622b"]
+
 # Option 2: Automatic Discovery (already handled by the Python script)
-# The script publishes a discovery message to homeassistant/sensor/ht622b/config
-# Home Assistant will auto-create the sensor if MQTT integration is enabled.
+# The script publishes discovery messages to homeassistant/sensor/ht622b_*/config
+# Home Assistant will auto-create all sensors if MQTT integration is enabled.
 
 # Option 3: UI-based (Recommended)
 # 1. Go to Settings > Devices & Services > MQTT > Configure
@@ -38,6 +73,10 @@ title: Sound Level Meter
 entities:
   - entity: sensor.ht622b_sound_level
     name: Current Level
+  - type: attribute
+    entity: sensor.ht622b_sound_level
+    attribute: range
+    name: Range
   - type: attribute
     entity: sensor.ht622b_sound_level
     attribute: mode

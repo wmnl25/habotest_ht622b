@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 HT622B Sound Level Meter - MQTT Publisher with Home Assistant Auto-Discovery
-=============================================================================
+===========================================================================
 Publishes decoded readings to MQTT with full Home Assistant device discovery.
 
 Requirements:
@@ -84,6 +84,21 @@ def decode_digit(pin_left, pin_right):
     return char, p
 
 
+def get_range_setting(byte4, byte9):
+    """Determine measurement range from raw LCD RAM bytes."""
+    base_byte4 = byte4 & 0xFE
+    range_id = (base_byte4, byte9 & 0xF0)
+    ranges = {
+        (0x04, 0x30): "30-130",
+        (0x04, 0x00): "30-80",
+        (0x0C, 0x00): "40-90",
+        (0x0C, 0x30): "50-100",
+        (0x00, 0x30): "70-120",
+        (0x0E, 0x30): "60-110 / 80-130",
+    }
+    return ranges.get(range_id, f"UNKNOWN {range_id}")
+
+
 def decode_frame(frame):
     """Decode a 23-byte HT622B frame into a dict."""
     if len(frame) != 23 or frame[0] != 0x06 or frame[1] != 0x2A or frame[2] != 0x11:
@@ -120,6 +135,9 @@ def decode_frame(frame):
     mode = "MAX" if is_max else ("MIN" if is_min else "NORMAL")
     limit = "UNDER" if is_under else ("OVER" if is_over else "NORMAL")
 
+    # Range detection from raw LCD RAM bytes (not decoded nibbles)
+    range_text = get_range_setting(frame[4], frame[9])
+
     return {
         "value": value_float,
         "value_str": value_str,
@@ -127,6 +145,7 @@ def decode_frame(frame):
         "speed": speed,
         "mode": mode,
         "limit": limit,
+        "range": range_text,
         "hold": is_hold,
         "timestamp": datetime.now().isoformat(),
     }
@@ -169,6 +188,14 @@ def publish_discovery(client):
             "state_topic": f"{MQTT_TOPIC_PREFIX}/state",
             "value_template": "{{ value_json.limit }}",
             "icon": "mdi:alert-circle",
+        },
+        {
+            "name": "HT622B Range",
+            "object_id": "ht622b_range",
+            "unique_id": "ht622b_range",
+            "state_topic": f"{MQTT_TOPIC_PREFIX}/state",
+            "value_template": "{{ value_json.range }}",
+            "icon": "mdi:tune-vertical",
         },
         {
             "name": "HT622B Hold",
@@ -240,7 +267,7 @@ def main():
                     if data and data["value"] is not None:
                         payload = json.dumps(data)
                         client.publish(f"{MQTT_TOPIC_PREFIX}/state", payload)
-                        print(f"{data['value_str']} {data['unit']} | {data['mode']} | {data['speed']} | HOLD={'ON' if data['hold'] else 'OFF'}")
+                        print(f"{data['value_str']} {data['unit']} | {data['mode']} | {data['speed']} | {data['range']} | HOLD={'ON' if data['hold'] else 'OFF'}")
     except serial.SerialException as e:
         print(f"Serial error: {e}")
     except KeyboardInterrupt:

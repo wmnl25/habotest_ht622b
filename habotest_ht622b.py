@@ -15,6 +15,10 @@ Digit Mapping (cross-byte HT1621 RAM layout):
   Tens:   PIN 10 (byte 6 high) + PIN 11 (byte 7 low)
   Units:  PIN 12 (byte 7 high) + PIN 13 (byte 8 low)
   Tenths: PIN 14 (byte 8 high) + PIN 15 (byte 9 low)
+
+Range Detection:
+  Uses raw bytes 4 (D15) and 9 (D10), not decoded nibbles.
+  range_id = (byte4 & 0xFE, byte9 & 0xF0)
 """
 
 import serial
@@ -60,6 +64,21 @@ def decode_digit(pin_left, pin_right):
     return char, p
 
 
+def get_range_setting(byte4, byte9):
+    """Determine measurement range from raw LCD RAM bytes."""
+    base_byte4 = byte4 & 0xFE
+    range_id = (base_byte4, byte9 & 0xF0)
+    ranges = {
+        (0x04, 0x30): "30-130",
+        (0x04, 0x00): "30-80",
+        (0x0C, 0x00): "40-90",
+        (0x0C, 0x30): "50-100",
+        (0x00, 0x30): "70-120",
+        (0x0E, 0x30): "60-110 / 80-130",
+    }
+    return ranges.get(range_id, f"UNKNOWN {range_id}")
+
+
 def print_frame_and_decode(frame):
     # Extract 32 PINs from 16 bytes (D15-D0)
     # Each byte = 2 PINs: low nibble = odd PIN, high nibble = even PIN
@@ -75,7 +94,6 @@ def print_frame_and_decode(frame):
     tenths, p1 = decode_digit(pins[14], pins[15])  # Digit 1 (P1, rightmost)
 
     # Format decimal dynamically based on active hardware flags
-    # P2 decimal sits between tens and units. P1 decimal sits between units and tenths.
     measured_value = f"{tens}{'.' if p2 else ''}{units}{'.' if p1 else ''}{tenths}"
 
     # Extract UI Flags by masking specific PIN/COM intersections
@@ -104,11 +122,15 @@ def print_frame_and_decode(frame):
     if is_under: limit_text = "UNDER"
     if is_over: limit_text = "OVER"
 
-    print("\n" + "=" * 40)
+    # Range detection from raw LCD RAM bytes (not decoded nibbles)
+    range_text = get_range_setting(frame[4], frame[9])
+
+    print("\n" + "=" * 50)
     print(f"Raw: {' '.join(f'{b:02X}' for b in frame)}")
     print(f"Modes: HOLD={'ON' if is_hold else 'OFF'} | SPEED={speed_text} | WEIGHT={weight_text} | MODE={mode_text} | LIMIT={limit_text}")
+    print(f"Range: {range_text}")
     print(f"Value: {measured_value} {weight_text}")
-    print("=" * 40)
+    print("=" * 50)
 
 
 def main():
