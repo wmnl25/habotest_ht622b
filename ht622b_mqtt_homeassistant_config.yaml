@@ -1,0 +1,52 @@
+# Home Assistant Configuration for HT622B
+# ========================================
+# Add this to your configuration.yaml or use the UI to create a MQTT sensor.
+
+# Option 1: Manual MQTT Sensor (configuration.yaml)
+mqtt:
+  sensor:
+    - name: "HT622B Sound Level"
+      state_topic: "homeassistant/sensor/ht622b/state"
+      unit_of_measurement: "dBA"
+      device_class: "sound_pressure"
+      value_template: "{{ value_json.value }}"
+      json_attributes_topic: "homeassistant/sensor/ht622b/state"
+      json_attributes_template: "{{ value_json | tojson }}"
+      unique_id: "ht622b_sound_level"
+      device:
+        identifiers: ["ht622b"]
+        name: "Habotest HT622B"
+        model: "HT622B"
+        manufacturer: "Habotest"
+
+# Option 2: Automatic Discovery (already handled by the Python script)
+# The script publishes a discovery message to homeassistant/sensor/ht622b/config
+# Home Assistant will auto-create the sensor if MQTT integration is enabled.
+
+# Option 3: UI-based (Recommended)
+# 1. Go to Settings > Devices & Services > MQTT > Configure
+# 2. Click "Listen to a topic" and subscribe to: homeassistant/sensor/ht622b/state
+# 3. Verify data is coming in
+# 4. Go to Settings > Devices & Services > Helpers > Create Helper
+# 5. Choose "Template" and create a sensor with:
+#    State template: {{ states('sensor.ht622b_sound_level') }}
+#    Unit: dBA
+
+# Example Dashboard Card (Lovelace YAML)
+type: entities
+title: Sound Level Meter
+entities:
+  - entity: sensor.ht622b_sound_level
+    name: Current Level
+  - type: attribute
+    entity: sensor.ht622b_sound_level
+    attribute: mode
+    name: Mode
+  - type: attribute
+    entity: sensor.ht622b_sound_level
+    attribute: speed
+    name: Response Speed
+  - type: attribute
+    entity: sensor.ht622b_sound_level
+    attribute: limit
+    name: Limit Status
