@@ -1,17 +1,26 @@
 #!/usr/bin/env python3
 """
-HT622B Sound Level Meter - MQTT Publisher
-==========================================
-Publishes decoded readings to MQTT for Home Assistant integration.
+HT622B Sound Level Meter - MQTT Publisher with Home Assistant Auto-Discovery
+=============================================================================
+Publishes decoded readings to MQTT with full Home Assistant device discovery.
 
 Requirements:
-    pip install paho-mqtt
+    pip install paho-mqtt pyserial
 
-Configuration:
-    Edit the MQTT_* variables below or set environment variables.
+Environment Variables:
+    MQTT_HOST     - MQTT broker address (default: homeassistant.local)
+    MQTT_PORT     - MQTT broker port (default: 1883)
+    MQTT_USER     - MQTT username (default: mqtt)
+    MQTT_PASS     - MQTT password (default: mqtt)
+    MQTT_TOPIC    - Topic prefix (default: homeassistant/sensor/ht622b)
+    HA_DISCOVERY  - Enable HA discovery (default: true)
+
+Home Assistant will auto-create sensors when MQTT integration is enabled.
+No manual YAML configuration needed.
 """
 
 import os
+import sys
 import serial
 import json
 import time
@@ -21,10 +30,10 @@ try:
     import paho.mqtt.client as mqtt
 except ImportError:
     print("Error: paho-mqtt not installed. Run: pip install paho-mqtt")
-    raise
+    sys.exit(1)
 
 # --- SERIAL CONFIGURATION ---
-SERIAL_PORT = "/dev/tty.usbserial-111230"
+SERIAL_PORT = os.environ.get("SERIAL_PORT", "/dev/tty.usbserial-111230")
 BAUD_RATE = 9600
 FRAME_LEN = 23
 # -----------------------------
@@ -32,10 +41,19 @@ FRAME_LEN = 23
 # --- MQTT CONFIGURATION ---
 MQTT_HOST = os.environ.get("MQTT_HOST", "homeassistant.local")
 MQTT_PORT = int(os.environ.get("MQTT_PORT", "1883"))
-MQTT_USER = os.environ.get("MQTT_USER", "my_user")
-MQTT_PASS = os.environ.get("MQTT_PASS", "my_password")
+MQTT_USER = os.environ.get("MQTT_USER", "")
+MQTT_PASS = os.environ.get("MQTT_PASS", "")
 MQTT_TOPIC_PREFIX = os.environ.get("MQTT_TOPIC", "homeassistant/sensor/ht622b")
+HA_DISCOVERY = os.environ.get("HA_DISCOVERY", "true").lower() == "true"
 # --------------------------
+
+DEVICE_INFO = {
+    "identifiers": ["ht622b"],
+    "name": "Habotest HT622B",
+    "model": "HT622B",
+    "manufacturer": "Habotest",
+    "sw_version": "1.0.0"
+}
 
 # Standard 7-segment: (a, b, c, d, e, f, g)
 SEGMENTS_TO_NUM = {
@@ -81,7 +99,6 @@ def decode_frame(frame):
     units, p2  = decode_digit(pins[12], pins[13])
     tenths, p1 = decode_digit(pins[14], pins[15])
 
-    # Build decimal string
     value_str = f"{tens}{'.' if p2 else ''}{units}{'.' if p1 else ''}{tenths}"
     try:
         value_float = float(value_str)
@@ -115,9 +132,68 @@ def decode_frame(frame):
     }
 
 
+def publish_discovery(client):
+    """Publish Home Assistant MQTT discovery configs for all sensors."""
+
+    sensors = [
+        {
+            "name": "HT622B Sound Level",
+            "object_id": "ht622b_sound_level",
+            "unique_id": "ht622b_sound_level",
+            "state_topic": f"{MQTT_TOPIC_PREFIX}/state",
+            "unit_of_measurement": "dBA",
+            "device_class": "sound_pressure",
+            "value_template": "{{ value_json.value }}",
+            "icon": "mdi:volume-high",
+        },
+        {
+            "name": "HT622B Mode",
+            "object_id": "ht622b_mode",
+            "unique_id": "ht622b_mode",
+            "state_topic": f"{MQTT_TOPIC_PREFIX}/state",
+            "value_template": "{{ value_json.mode }}",
+            "icon": "mdi:toggle-switch",
+        },
+        {
+            "name": "HT622B Speed",
+            "object_id": "ht622b_speed",
+            "unique_id": "ht622b_speed",
+            "state_topic": f"{MQTT_TOPIC_PREFIX}/state",
+            "value_template": "{{ value_json.speed }}",
+            "icon": "mdi:speedometer",
+        },
+        {
+            "name": "HT622B Limit",
+            "object_id": "ht622b_limit",
+            "unique_id": "ht622b_limit",
+            "state_topic": f"{MQTT_TOPIC_PREFIX}/state",
+            "value_template": "{{ value_json.limit }}",
+            "icon": "mdi:alert-circle",
+        },
+        {
+            "name": "HT622B Hold",
+            "object_id": "ht622b_hold",
+            "unique_id": "ht622b_hold",
+            "state_topic": f"{MQTT_TOPIC_PREFIX}/state",
+            "value_template": "{{ value_json.hold }}",
+            "icon": "mdi:pause-circle",
+            "payload_on": True,
+            "payload_off": False,
+        },
+    ]
+
+    for sensor in sensors:
+        discovery_topic = f"homeassistant/sensor/{sensor['unique_id']}/config"
+        payload = {**sensor, "device": DEVICE_INFO}
+        client.publish(discovery_topic, json.dumps(payload), retain=True)
+        print(f"Published HA discovery: {sensor['name']} -> {discovery_topic}")
+
+
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
         print(f"MQTT connected to {MQTT_HOST}:{MQTT_PORT}")
+        if HA_DISCOVERY:
+            publish_discovery(client)
     else:
         print(f"MQTT connection failed with code {rc}")
 
@@ -127,38 +203,36 @@ def on_disconnect(client, userdata, rc):
 
 
 def main():
+    print("=" * 60)
+    print("HT622B MQTT Publisher")
+    print("=" * 60)
+    print(f"Serial: {SERIAL_PORT} @ {BAUD_RATE} baud")
+    print(f"MQTT: {MQTT_HOST}:{MQTT_PORT}")
+    print(f"Topic: {MQTT_TOPIC_PREFIX}/state")
+    print(f"HA Discovery: {'enabled' if HA_DISCOVERY else 'disabled'}")
+    print("=" * 60)
+
     client = mqtt.Client()
     client.on_connect = on_connect
     client.on_disconnect = on_disconnect
     if MQTT_USER and MQTT_PASS:
         client.username_pw_set(MQTT_USER, MQTT_PASS)
 
-    client.connect(MQTT_HOST, MQTT_PORT, 60)
+    try:
+        client.connect(MQTT_HOST, MQTT_PORT, 60)
+    except Exception as e:
+        print(f"Failed to connect to MQTT: {e}")
+        sys.exit(1)
+
     client.loop_start()
 
-    # Publish Home Assistant discovery config
-    discovery_topic = f"{MQTT_TOPIC_PREFIX}/config"
-    discovery_payload = {
-        "name": "HT622B Sound Level",
-        "state_topic": f"{MQTT_TOPIC_PREFIX}/state",
-        "unit_of_measurement": "dBA",
-        "device_class": "sound_pressure",
-        "value_template": "{{ value_json.value }}",
-        "json_attributes_topic": f"{MQTT_TOPIC_PREFIX}/state",
-        "unique_id": "ht622b_sound_level",
-        "device": {
-            "identifiers": ["ht622b"],
-            "name": "Habotest HT622B",
-            "model": "HT622B",
-            "manufacturer": "Habotest"
-        }
-    }
-    client.publish(discovery_topic, json.dumps(discovery_payload), retain=True)
-    print(f"Published HA discovery to {discovery_topic}")
+    # Give MQTT time to connect and publish discovery
+    time.sleep(2)
 
     try:
         with serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1) as ser:
-            print(f"Reading from {SERIAL_PORT} at {BAUD_RATE} baud...")
+            print(f"\nReading from {SERIAL_PORT}...")
+            print("Press Ctrl+C to stop.\n")
             while True:
                 frame = ser.read(FRAME_LEN)
                 if len(frame) == FRAME_LEN and frame[0:2] == b'\x06\x2A' and frame[3] == 0x01:
@@ -166,7 +240,7 @@ def main():
                     if data and data["value"] is not None:
                         payload = json.dumps(data)
                         client.publish(f"{MQTT_TOPIC_PREFIX}/state", payload)
-                        print(f"Published: {data['value_str']} {data['unit']} ({data['mode']}, {data['speed']})")
+                        print(f"{data['value_str']} {data['unit']} | {data['mode']} | {data['speed']} | HOLD={'ON' if data['hold'] else 'OFF'}")
     except serial.SerialException as e:
         print(f"Serial error: {e}")
     except KeyboardInterrupt:
