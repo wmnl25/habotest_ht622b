@@ -46,7 +46,7 @@ This is why naive byte-level decoding fails — the same byte value (`0xE6`, `0x
 
 ```bash
 pip install pyserial
-python ht622b_decoder.py
+python habotest_ht622b.py
 ```
 
 Connect the HT622B via USB and edit `SERIAL_PORT` in the script if needed.
@@ -102,7 +102,7 @@ Value: 48.0 dBA
 
 | File | Purpose |
 |------|---------|
-| `ht622b_decoder.py` | Standalone real-time decoder |
+| `habotest_ht622b` | Standalone real-time decoder |
 | `ht622b_mqtt.py` | MQTT publisher with HA discovery |
 | `homeassistant_config.yaml` | HA sensor/card configuration |
 | `HT622B上位机通讯协议-V0.0.docx` | Official manufacturer protocol |

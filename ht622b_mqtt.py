@@ -32,8 +32,8 @@ FRAME_LEN = 23
 # --- MQTT CONFIGURATION ---
 MQTT_HOST = os.environ.get("MQTT_HOST", "homeassistant.local")
 MQTT_PORT = int(os.environ.get("MQTT_PORT", "1883"))
-MQTT_USER = os.environ.get("MQTT_USER", "mqtt")
-MQTT_PASS = os.environ.get("MQTT_PASS", "mqtt")
+MQTT_USER = os.environ.get("MQTT_USER", "my_user")
+MQTT_PASS = os.environ.get("MQTT_PASS", "my_password")
 MQTT_TOPIC_PREFIX = os.environ.get("MQTT_TOPIC", "homeassistant/sensor/ht622b")
 # --------------------------
 
