@@ -107,14 +107,6 @@ Value: 48.0 dBA
 | `homeassistant_config.yaml` | HA sensor/card configuration |
 | `HT622B上位机通讯协议-V0.0.docx` | Official manufacturer protocol |
 
----
-
-## 🤝 Contributing
-
-If you have an HT622B and want to help map additional LCD segments (bar graph, battery icon, etc.), capture frames and open an issue with:
-
-1. The physical display reading (e.g., "48.3 dBA, FAST, MAX")
-2. The raw 23-byte hex frame
 
 ---
 
