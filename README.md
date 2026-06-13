@@ -2,6 +2,8 @@
 
 A complete Python decoder and MQTT publisher for the **Habotest HT622B Digital Sound Level Meter**, including Home Assistant integration.
 
+<img width="300" height="300" alt="digital-decibel-meter-habotest-ht622b-usb-a-c" src="https://github.com/user-attachments/assets/2f53574d-c303-49c1-8944-67a62f62a7c8" />
+
 ---
 
 ## 🔍 The Protocol
@@ -64,6 +66,8 @@ python ht622b_mqtt.py
 The script auto-publishes Home Assistant discovery config so the sensor appears automatically.
 
 ### 3. Home Assistant Configuration
+<img width="1057" height="565" alt="ht622b_hassio" src="https://github.com/user-attachments/assets/4bff77fc-0b2a-4886-a425-fa788aa5d368" />
+
 
 See [`homeassistant_config.yaml`](homeassistant_config.yaml) for:
 - Manual MQTT sensor setup
