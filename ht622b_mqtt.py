@@ -27,6 +27,12 @@ import time
 from datetime import datetime
 
 try:
+    from dotenv import load_dotenv
+    load_dotenv()  # This line actually reads the .env file and loads it into os.environ
+except ImportError:
+    print("Warning: python-dotenv not installed. .env file will not be read.")
+
+try:
     import paho.mqtt.client as mqtt
 except ImportError:
     print("Error: paho-mqtt not installed. Run: pip install paho-mqtt")
